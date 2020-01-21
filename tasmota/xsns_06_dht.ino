@@ -83,17 +83,21 @@ bool DhtRead(uint8_t sensor)
   pinMode(Dht[sensor].pin, OUTPUT);
   digitalWrite(Dht[sensor].pin, LOW);
 
-  if (GPIO_SI7021 == Dht[sensor].type) {
-    delayMicroseconds(500);
-  } else {
-    delay(20);
+  // Different sensors use different start pulse length
+  switch (Dht[sensor].type) {
+    case GPIO_DHT22:
+      delayMicroseconds(1100);  // Datasheet says 'at least 1ms'
+    case GPIO_SI7021:
+      delayMicroseconds(500);
+      break;
+    default:
+      delay(20);  // DHT11 requires 20ms.
   }
-
-  noInterrupts();
-  digitalWrite(Dht[sensor].pin, HIGH);
-  delayMicroseconds(40);
+  
+  // release pin so device can respond
   pinMode(Dht[sensor].pin, INPUT_PULLUP);
-  delayMicroseconds(10);
+  delayMicroseconds(40);
+  
   if (-1 == DhtExpectPulse(sensor, LOW)) {
     AddLog_P(LOG_LEVEL_DEBUG, PSTR(D_LOG_DHT D_TIMEOUT_WAITING_FOR " " D_START_SIGNAL_LOW " " D_PULSE));
     error = 1;
